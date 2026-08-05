@@ -1,15 +1,15 @@
 # AlegroAPI Test Automation Framework
 
-This project is a API test automation framework built to test the [Petstore Swagger API](https://petstore.swagger.io/). Introduces a dual implementations with both **Playwright** and **Requests** libraries for the /pet endpoint
+This project is a API test automation framework built to test the [Petstore Swagger API](https://petstore.swagger.io/). Introduces a dual implementations with both **Playwright** and **Requests** libraries for the v2/pet endpoints
 
-## 🚀 Technologies Used
+## Technologies Used
 - **Python 3.11+**
 - **Pytest**
 - **Playwright (`pytest-playwright`)**: using `APIRequestContext`
 - **Requests**
 - **GitHub Actions**
 
-## ⚙️ Installation
+## Installation
 
 Create a virtual environment and activate it:
    ```bash
@@ -27,7 +27,7 @@ Install Playwright browsers:
    playwright install
    ```
 
-## 🧪 Running Tests
+## Running Tests
 
 Run the entire test suite (both Playwright and Requests implementations) with a single command:
 ```bash
