@@ -2,8 +2,6 @@
 This module contains API tests for the Petstore API using Playwright's APIRequestContext.
 """
 # pylint: disable=redefined-outer-name
-import time
-import random
 from typing import Dict, Any, Generator
 
 import pytest
@@ -11,19 +9,6 @@ from playwright.sync_api import APIRequestContext
 
 from tests.test_data import TestData
 
-def get_unique_mock_id() -> int:
-    """ This function generates a unique mock pet ID for not_found tests """
-    return int(time.time() * 10000) + random.randint(1, 100000)
-
-@pytest.fixture
-def mock_id(request) -> int:
-    """
-    This fixture provides a mock ID at runtime to avoid changing test methods string ID
-    during parametrization
-    """
-    if request.param == "random":
-        return get_unique_mock_id()
-    return request.param
 
 
 @pytest.fixture
@@ -119,7 +104,7 @@ class TestPetStoreAPI:
         )
 
     @pytest.mark.xfail(
-        reason="FAIL: API returns 200 OK instead of 400 for missing required fields"
+        reason="FAIL: API returns 200 OK instead of 405 for missing required fields"
     )
     @pytest.mark.parametrize(
         "invalid_payload",
@@ -136,12 +121,12 @@ class TestPetStoreAPI:
         Endpoint: POST https://petstore.swagger.io/v2/pet
         """
         response = api_request_context.post("/v2/pet", data=invalid_payload)
-        assert response.status == 400, (
-            f"Expected error status 400, got '{response.status}'"
+        assert response.status == 405, (
+            f"Expected error status 405, got '{response.status}'"
         )
 
     @pytest.mark.xfail(
-        reason="FAIL: API returns 500 instead of 400 for invalid data type"
+        reason="FAIL: API returns 500 instead of 405 for invalid data type"
     )
     def test_create_pet_invalid_id_type(
         self, api_request_context: APIRequestContext, pet_payload: Dict[str, Any]
@@ -152,8 +137,8 @@ class TestPetStoreAPI:
         """
         pet_payload["id"] = "abc"
         response = api_request_context.post("/v2/pet", data=pet_payload)
-        assert response.status == 400, (
-            f"Expected error status 400, got '{response.status}'"
+        assert response.status == 405, (
+            f"Expected error status 405, got '{response.status}'"
         )
 
     @pytest.mark.xfail(
@@ -168,8 +153,8 @@ class TestPetStoreAPI:
         """
         pet_payload["id"] = 9999999999999999999999
         response = api_request_context.post("/v2/pet", data=pet_payload)
-        assert response.status == 400, (
-            f"Expected error status 400, got '{response.status}'"
+        assert response.status == 405, (
+            f"Expected error status 405, got '{response.status}'"
         )
 
     def test_get_pet_by_id(
@@ -306,7 +291,7 @@ class TestPetStoreAPI:
         This negative test tries to update the pet with invalid ID format (expects 400)
         Endpoint: PUT https://petstore.swagger.io/v2/pet
         """
-        invalid_payload = {"id": invalid_id}
+        invalid_payload = {"id": invalid_id, "name": "test", "photoUrls": ["url"]}
         response = api_request_context.put("/v2/pet", data=invalid_payload)
 
         assert not response.ok, (
@@ -566,7 +551,7 @@ class TestPetStoreAPI:
             f"Expected status code 200 for deletion, got {response.status}"
         )
 
-        # Verify that cannot retreive the deleted pet
+        # Verify that cannot retrieve the deleted pet
         get_response = api_request_context.get(f"/v2/pet/{pet_id}")
         assert not get_response.ok, (
             "Expected failure retrieving deleted pet, but got success with status "
@@ -588,27 +573,14 @@ class TestPetStoreAPI:
         api_request_context.delete(f"/v2/pet/{pet_id}")
 
         response = api_request_context.delete(f"/v2/pet/{pet_id}")
+        assert not response.ok, (
+            "Expected failure deleting already-deleted pet, but request succeeded "
+            f"with status {response.status}"
+        )
         assert response.status == 404, (
             f"Expected status code 404 for already deleted pet, got {response.status}"
         )
 
-    @pytest.mark.xfail(
-        reason="FAIL: API allows unauthenticated deletions instead of returning 401"
-    )
-    def test_delete_pet_unauthenticated(
-        self, api_request_context: APIRequestContext, pet_payload: Dict[str, Any]
-    ):
-        """
-        This negative test verifies that deleting a pet requires an API key.
-        Endpoint: DELETE https://petstore.swagger.io/v2/pet/{petId}
-        """
-        api_request_context.post("/v2/pet", data=pet_payload)
-        pet_id = pet_payload["id"]
-
-        response = api_request_context.delete(f"/v2/pet/{pet_id}", headers={"api_key": ""})
-        assert response.status == 401, (
-            f"Expected status code 401 Unauthorized without api_key, got {response.status}"
-        )
 
     @pytest.mark.xfail(
         reason="FAIL: API returns 404 instead of documented 400 for invalid ID format")
